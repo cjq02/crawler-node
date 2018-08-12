@@ -1,0 +1,51 @@
+{
+    // Use IntelliSense to learn about possible attributes.
+    // Hover to view descriptions of existing attributes.
+    // For more information, visit: https://go.microsoft.com/fwlink/?linkid=830387
+    "version": "0.2.0",
+    "configurations": [
+        {
+            "type": "node",
+            "request": "launch",
+            "name": "test",
+            "program": "${workspaceRoot}/testClass.js",
+            "sourceMaps": true,
+            "runtimeArgs": [
+                "--nolazy",
+                "--require",
+                "babel-register"
+            ]
+        },
+        {
+            "type": "node",
+            "request": "launch",
+            "name": "Crawler App",
+            "program": "${workspaceFolder}/crawlerApp.js",
+            "sourceMaps": true,
+            "runtimeArgs": [
+                "--nolazy",
+                "--require",
+                "babel-register"
+            ]
+        },
+        {
+            "type": "node",
+            "request": "launch",
+            "name": "myCrawler",
+            "program": "${workspaceFolder}/myCrawler.js"
+        },
+        {
+            "type": "node",
+            "request": "launch",
+            "name": "app",
+            "program": "${workspaceFolder}/app.js"
+        },
+        {
+            "type": "chrome",
+            "request": "launch",
+            "name": "启动 Chrome 并打开 localhost",
+            "url": "http://localhost:3000",
+            "webRoot": "${workspaceFolder}/app.js"
+        }
+    ]
+}
