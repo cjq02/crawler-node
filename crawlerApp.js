@@ -15,19 +15,104 @@ class CrawlerApplication {
         this.uri = Config.linksUri;
         this.crawlerFactory = CrawlerFactory;
         this.crawlerLinks = new CrawlerLinks();
+        this.crawlerDetail = new CrawlerDetail();
+        this.htmlBuilder = new CrawlerHtmlBuilder();
     }
 
     async start() {
+        let startTime = new Date();
+
         fs.createWriteStream(Config.fileName).write('');
 
-        await Promise.all(this.pages.map(async (page) => {
-            let res = await this.crawlerFactory.queue({
-                uri: `${this.uri}&page=${page}`,
-                page
-            });
+        console.log(`${this.getCurrentTime()} - Start Crawling Pages...`);
 
-            this.crawlerLinks.handler(res);
-        }));
+        let pageUrls = this.pages.map(page => `${this.uri}&page=${page}`);
+
+        let shortlistOptions = await this.crawlerFactory.queues({
+            uris: pageUrls,
+            linkGroupStage: [],
+            handler: this.crawlerLinks.handler.bind(this.crawlerLinks)
+        });
+
+        let linkGroupStage = this.shuffle(shortlistOptions.linkGroupStage);
+
+        let sleepSeconds = 0;
+
+        let linkGroupFinal = await Promise.all(
+            _.map(linkGroupStage, async (uris, yearMonth) => {
+                await this.sleep(sleepSeconds++);
+                
+                console.log(`${this.getCurrentTime()} - Start Crawling Links, YearMonth: ${yearMonth}, Length: ${uris.length} ...`);
+
+                let options = await this.crawlerFactory.queues({
+                    uris,
+                    linkGroupSemiFinal: [],
+                    handler: this.crawlerDetail.handler.bind(this.crawlerDetail)
+                });
+
+                return options.linkGroupSemiFinal;
+            })
+        );
+
+        let linkFinalist = this.reduce(linkGroupFinal);
+
+        console.log(`${this.getCurrentTime()} - Start Print, Length: ${linkFinalist.length} ...`);
+
+        this.print(linkFinalist);
+
+        let endTime = new Date();
+
+        let timeSpan = this.getTimeSpan(startTime, endTime);
+
+        console.log(`Finished. Time Span: ${timeSpan} Seconds`);
+    }
+
+    async print(linkFinalist) {
+        if (linkFinalist.length === 0) {
+            return;
+        }
+
+        let html = '';
+
+        _.each(linkFinalist, (link) => {
+            html += this.htmlBuilder.buildLink(link);
+        });
+
+        const appendFileSync = await promisify(fs.appendFileSync);
+        appendFileSync(Config.fileName, html);
+    }
+
+    shuffle(links) {
+        return _.groupBy(links, link => link.yearMonth);
+    }
+
+    reduce(linkGroup) {
+        let concatList = [];
+
+        _.each(linkGroup, (links) => {
+            concatList.push(...links);
+        });
+
+        let sortedList = _.orderBy(concatList, ['publishedTime'], ['desc']);
+
+        return sortedList;
+    }
+
+    getCurrentTime() {
+        return new Date().toLocaleString();
+    }
+
+    getTimeSpan(start, end) {
+        let diff = end.getTime() - start.getTime();
+        return _.toInteger(diff/1000);
+    }
+
+    sleep(seconds) {
+        return new Promise((resolve) => {
+            setTimeout(() => {
+                resolve();
+            }, seconds * 3000);
+        });
     }
 }
 
@@ -36,9 +121,6 @@ class CrawlerLinks {
     constructor() {
         this.constants = Constants;
         this.uri = Config.detailUri;
-        this.crawlerDetail = new CrawlerDetail();
-        this.crawlerFactory = CrawlerFactory;
-        this.htmlBuilder = new CrawlerHtmlBuilder();
     }
 
     async handler(res) {
@@ -53,38 +135,19 @@ class CrawlerLinks {
 
         let filterLinks = _.filter(links, link => this.hasKeyWordInLink($(link).text()));
 
-        let list = filterLinks.map((link) => {
-            return `${this.uri}/${link.attribs.href}`;
+        let uris = filterLinks.map(link => {
+            return {
+                yearMonth: this.getYearMonth($, link),
+                uri: `${this.uri}/${link.attribs.href}`
+            }
         });
 
-        let opts = {
-            list,
-            page: res.options.page,
-            linkCollection: [],
-            handler: this.crawlerDetail.handler.bind(this.crawlerDetail)
-        };
-
-        let options = await this.crawlerFactory.queues(opts);
-        this.drain(options);
+        res.options.linkGroupStage.push(...uris);
     }
 
-    async drain(options) {
-        if (options.linkCollection.length === 0) {
-            return;
-        }
-
-        let html = '';
-
-        // html = this.htmlBuilder.buildTable(opts.linkCollection);
-
-        _.each(options.linkCollection, (link) => {
-            html += this.htmlBuilder.buildLink(link);
-        });
-
-        const appendFileSync = await promisify(fs.appendFileSync);
-        appendFileSync(Config.fileName, html);
-
-        console.log(`Print Page: ${options.page}`);
+    getYearMonth($, link) {
+        let publishedTime = $($(link).parents('tr').find('a.f10')).text().trim();
+        return publishedTime.substr(0, 4) + publishedTime.substr(5, 2);
     }
 
     hasKeyWordInLink(linkText) {
@@ -133,7 +196,7 @@ class CrawlerDetail {
                 avNums: this.avNums
             };
 
-            res.options.linkCollection.push(link);
+            res.options.linkGroupSemiFinal.push(link);
         }
     }
 
@@ -196,35 +259,6 @@ class CrawlerHtmlBuilder {
 
     }
 
-    buildTable(linkCollection) {
-        let html = '';
-
-        html += '<table>';
-
-        _.each(linkCollection, (link) => {
-            html += '<tr>';
-
-            html += this.buildtds(link);
-
-            html += '</tr>';
-        });
-
-        html += '</table>';
-        html += '<br>';
-
-        return html;
-    }
-
-    buildTds(link) {
-        let html = '';
-        html += `
-                    <td>${link.publishedTime}</td>
-                    <td><a href='${link.url}'>${link.text}</a></td>
-                    <td><span style=''>${link.avNums.join(",")}</span></td>
-                 `;
-        return html;
-    }
-
     buildLink(link) {
         let html = '';
 
@@ -246,8 +280,8 @@ class CrawlerFactory {
 
     static create(handler) {
         return new Crawler({
-            maxConnections: 10,
-            rateLimit: 1000,
+            maxConnections: 10000,
+            // rateLimit: 10,
             proxy: 'http://localhost:1080',
             callback: this.callback.call(null).bind(handler)
         });
@@ -258,7 +292,7 @@ class CrawlerFactory {
             let crawler = this.create(opts.handler);
             Object.assign(crawler.options, opts);
 
-            crawler.queue(opts.list);
+            crawler.queue(opts.uris);
 
             crawler.on('drain', () => {
                 resolve(crawler.options);

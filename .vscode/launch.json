@@ -7,18 +7,6 @@
         {
             "type": "node",
             "request": "launch",
-            "name": "test",
-            "program": "${workspaceRoot}/testClass.js",
-            "sourceMaps": true,
-            "runtimeArgs": [
-                "--nolazy",
-                "--require",
-                "babel-register"
-            ]
-        },
-        {
-            "type": "node",
-            "request": "launch",
             "name": "Crawler App",
             "program": "${workspaceFolder}/crawlerApp.js",
             "sourceMaps": true,
@@ -31,21 +19,20 @@
         {
             "type": "node",
             "request": "launch",
-            "name": "myCrawler",
-            "program": "${workspaceFolder}/myCrawler.js"
+            "name": "mongoDB",
+            "program": "${workspaceRoot}/mongoDB.js",
+            "sourceMaps": true,
+            "runtimeArgs": [
+                "--nolazy",
+                "--require",
+                "babel-register"
+            ]
         },
         {
             "type": "node",
             "request": "launch",
             "name": "app",
             "program": "${workspaceFolder}/app.js"
-        },
-        {
-            "type": "chrome",
-            "request": "launch",
-            "name": "启动 Chrome 并打开 localhost",
-            "url": "http://localhost:3000",
-            "webRoot": "${workspaceFolder}/app.js"
         }
     ]
 }

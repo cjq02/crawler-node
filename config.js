@@ -1,8 +1,8 @@
 const Config = {
     pageStart: 1,
-    pageEnd: 157,
+    pageEnd: 133,
     pages: getPages.call(this),
-    fileName: 'ccc.html',
+    fileName: 'oyc.html',
     linksUri: 'http://w3.afulyu.pw/pw/thread.php?fid=3',
     detailUri: 'http://w3.afulyu.pw/pw'
 };
