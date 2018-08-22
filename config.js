@@ -1,10 +1,21 @@
+const url = 'http://w3.afulyu.pw';
+
 const Config = {
     pageStart: 1,
-    pageEnd: 133,
+    pageEnd: 50,
     pages: getPages.call(this),
-    fileName: 'oyc.html',
-    linksUri: 'http://w3.afulyu.pw/pw/thread.php?fid=3',
-    detailUri: 'http://w3.afulyu.pw/pw'
+    sleepMultiple: 3,
+    fileName: 'CLUB2.html',
+    uris: {
+        list: `${url}/pw/thread.php?fid=3`,
+        detail: `${url}/pw`
+    },
+    keyWords: {
+        list: ["有", "中", "骑", "騎"],
+        detail: ["CLUB"]
+    },
+    linksUri: `${url}/pw/thread.php?fid=3`,
+    detailUri: `${url}/pw`
 };
 
 function getPages() {
