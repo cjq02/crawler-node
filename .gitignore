@@ -1,3 +1,3 @@
 NODE_MODULES
-*.html
+output
 config.js
