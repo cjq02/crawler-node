@@ -9,8 +9,9 @@ import Config from './config';
 class CrawlerApplication {
 
     constructor() {
-        this.pages = Config.pages();
-        this.uri = Config.uris.list;
+        this.config = Config;
+        this.pages = this.config.pages();
+        this.uri = this.config.uris.list;
         this.sleepMultiple = Config.sleepMultiple;
         this.crawlerFactory = CrawlerFactory;
         this.crawlerLinks = new CrawlerLinks();
@@ -18,10 +19,14 @@ class CrawlerApplication {
         this.htmlBuilder = new CrawlerHtmlBuilder();
     }
 
+    init(config) {
+        this.config = Object.assign(this.config, config);
+    }
+
     async start() {
         let startTime = new Date();
 
-        fs.createWriteStream(Config.fileName).write('');
+        fs.createWriteStream(this.config.fileName).write('');
 
         console.log(`${this.getCurrentTime()} - Start Crawling Pages...`);
 
@@ -299,7 +304,7 @@ class CrawlerFactory {
         return new Crawler({
             maxConnections: 10000,
             // rateLimit: 1,
-            proxy: 'http://localhost:1080',
+            proxy: 'http://127.0.0.1:1080',
             callback: this.callback.call(null).bind(handler)
         });
     }
